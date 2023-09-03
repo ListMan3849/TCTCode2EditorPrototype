@@ -1,0 +1,101 @@
+<!doctype html>
+<head>
+    <title>Election Mod Editor</title>
+    <link href="https://unpkg.com/tabulator-tables@5.4.3/dist/css/tabulator.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.4.3/dist/js/tabulator.min.js"></script>
+    <link href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>  
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>  
+</head>
+
+
+<div id="tabs">
+    <ul id="tabList">
+        <li><a href="#tab-input">Input</a></li>
+        <li><a href="#tab-simple">Simple Variables</a></li>
+        <li><a href="#tab-tables">Table Variables</a></li>
+        <li><a href="#tab-results">Results</a></li>
+    </ul>
+    <div id="tab-input">
+        <textarea id="modInput"  rows="4" cols="50"></textarea>
+        <button id="readModInputBtn">Read Input Text</button>
+    </div>
+    <div id="tab-simple"></div>
+    <div id="tab-tables">
+        <div id="tables-accordion"></div>
+    </div>
+    <div id="tab-results">
+        <button id="generateOutputBtn">Generate Output Text</button>
+        <textarea id="modOutput"  rows="4" cols="50"></textarea>
+    </div>
+</div>
+
+<script>
+    $( "#tabs" ).tabs();    
+    var campaignTrail_temp = {};
+    $("#modOutput").val('');
+    var tables = {};
+    function deFields(a){
+        var o = [];
+        a.forEach(function(v){
+            Object.keys(v).forEach(function(k){
+                if(k == 'fields'){
+                    Object.keys(v[k]).forEach(function(fk){
+                        v['_f_' + fk] = v[k][fk]
+                    })
+                    delete v[k];
+                }
+            })
+            o.push(v);
+        })
+        return(o);
+    }
+    function reFields(a){
+        var o = [];
+        a.forEach(function(v){
+            Object.keys(v).forEach(function(k){
+                if(k.startsWith('_f_')){
+                    if(!(v.fields)){ v.fields = {}; }
+                    v.fields[k.replace('_f_','')] = v[k]
+                    delete v[k];
+                }
+            })
+            o.push(v);
+        })
+        return(o);
+    }
+    function addHTMLElement(i){
+        var options = {};
+        Object.keys(i).forEach(function(k){
+            if(!(['type', 'inside'].includes(k))){
+                options[k] = i[k];
+            }
+        })
+        jQuery(i.type, options).appendTo('#' + i.inside);
+    }
+    function emptyHTMLElement(i){
+        $('#' + i).empty();
+    }
+    $("#generateOutputBtn").click(function(){
+        var o = {};
+        var outputstring = '';
+
+        Object.keys(campaignTrail_temp).forEach(function(k){
+            if(typeof(campaignTrail_temp[k]) == 'object'){
+                o[k] = reFields(campaignTrail_temp[k])
+                var v = JSON.stringify(o[k]);
+                v = v.replaceAll('\":', '\": ');
+                v = v.replaceAll(',\"', ', \"');
+                v = v.replaceAll('},{', '}, {');
+                outputstring = outputstring + 'campaignTrail_temp.' + k + ' = JSON.parse("' + v.replaceAll("\"", "\\\"") + '");\n\n';
+            } else {
+                o[k] = campaignTrail_temp[k]
+                var v = '';
+                if(o[k] == '[]'){
+                    v = '[]';
+                } else {
+                    v = "'" + o[k] + "'";
+                }
+                outputstring = outputstring + 'campaignTrail_temp.' + k + ' = ' + v + ';\n\n';
+            }
+... (83 lines left)
