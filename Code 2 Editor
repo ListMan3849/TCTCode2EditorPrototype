@@ -98,4 +98,86 @@
                 }
                 outputstring = outputstring + 'campaignTrail_temp.' + k + ' = ' + v + ';\n\n';
             }
-... (83 lines left)
+        })
+        // var outputString = JSON.stringify(o);
+        // var outputstring = '';
+        // Object.keys(o).forEach(function(k){
+        //     var v = JSON.stringify(o[k]);
+        //     outputstring = outputstring + 'campaignTrail_temp.' + k + ' = JSON.parse("' + v.replaceAll("\"", "\\\"") + '");\n\n';
+        // })
+        // outputString = outputstring.replaceAll("\"", "\\\"");
+        $("#modOutput").val(outputstring);
+    });
+    $("#readModInputBtn").click(function(){
+        var inputText = $("#modInput").val();
+        var inputCommandsSplit = inputText.replaceAll('\n', ' ').split('campaignTrail_temp.');
+        inputCommandsSplit.shift();
+        inputCommandsSplit.forEach(e => {
+            var eSplit = e.split("=");
+            var f = eSplit[0].trim();
+            eSplit.shift();
+            var v = eSplit.join('=').trim().replace(/\;$/, '');
+            if(v.startsWith('JSON.parse("')){
+                v = v.replace('JSON.parse("','').slice(0,-2).replaceAll("\\\\\\\"", '---xxx---').replaceAll("\\\"", "\"").replaceAll('---xxx---', "\\\\\\\"")
+                campaignTrail_temp[f] = JSON.parse(v);
+            } else {
+                campaignTrail_temp[f] = v.replaceAll("\'", '')
+            }
+        });
+        // console.log(campaignTrail_temp);
+        Object.keys(campaignTrail_temp).forEach(function(k){
+            if(typeof(campaignTrail_temp[k]) == 'object'){
+                addHTMLElement({type: '<h3>', text: k, inside:'tables-accordion'})
+                addHTMLElement({type: '<div>', id: 'EditorDIV-' + k, inside:'tables-accordion'})
+                campaignTrail_temp[k] = deFields(campaignTrail_temp[k]);
+                addHTMLElement({type: '<div>', id: 'EditorTableDIV-' + k, inside:'EditorDIV-' + k})
+                tables['table-' + k] = new Tabulator('#EditorTableDIV-' + k, {
+                    data:campaignTrail_temp[k],
+                    autoColumns:true,
+                    index:"pk",
+                    autoColumnsDefinitions:function(definitions){
+                        definitions.forEach((column) => {
+                            column.headerFilter = true; // add header filter to every column
+                            column.editor = 'input';
+                        });
+                        definitions.push({
+                            title:"Delete This Row",
+                            formatter:"buttonCross",
+                            align:"center",
+                            headerSort:false,
+                            cellClick:function(e, cell){
+                                if(confirm('Are you sure you want to delete this entry?'))
+                                cell.getRow().delete();
+                            }
+                        });
+                        definitions.push({
+                            title:"Add Row",
+                            formatter:"buttonTick",
+                            align:"center",
+                            headerSort:false,
+                            cellClick:function(e, cell){
+                                var currentRow = cell.getRow().getIndex();
+                                tables['table-' + k].addRow({}, true, currentRow);
+                            }
+                        });
+                        return definitions;
+                    },
+                    paginationSize:10,
+                    paginationSizeSelector:[10, 25], //enable page size select element with these options
+                });
+            } else {
+                addHTMLElement({type: '<div>', id: 'EditorDIV-' + k, inside:'tab-simple'})
+                addHTMLElement({type: '<p>', text: k, inside:'EditorDIV-' + k})
+                addHTMLElement({type: '<input>', id: 'Editor-Input-' + k, value: campaignTrail_temp[k], inside:'EditorDIV-' + k,  style:'background-color:#DDDDDD; width:100%'})
+                $('#Editor-Input-' + k).change(function(){
+                    campaignTrail_temp[k] = $('#Editor-Input-' + k).val();
+                })
+                addHTMLElement({type: '<hr>', inside:'tab-simple'})
+            }
+        })
+        $( "#tables-accordion" ).accordion({
+            heightStyle: "content",
+            collapsible: true
+            });
+    });
+</script>
